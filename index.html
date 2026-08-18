@@ -107,6 +107,13 @@ mark{background:#fff0a0;color:inherit;border-radius:2px;padding:0 1px}
 .toast{position:fixed;left:50%;bottom:100px;transform:translate(-50%,10px);opacity:0;pointer-events:none;z-index:300;padding:10px 18px;border-radius:99px;background:rgba(20,20,20,.85);color:#fff;font-size:13px;white-space:nowrap;transition:opacity .18s,transform .18s}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .empty{padding:60px 16px;text-align:center;color:var(--muted);font-size:14px}
+.pagination{display:flex;justify-content:center;align-items:center;gap:4px;padding:20px 16px 12px;flex-wrap:wrap}
+.pg-btn{min-width:36px;height:36px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:#fff;color:#555;font-size:14px;cursor:pointer;transition:all .15s}
+.pg-btn:hover:not(:disabled){background:#f5f5f5}
+.pg-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+.pg-btn.disabled,.pg-btn:disabled{color:#ccc;cursor:default;border-color:#eee}
+.pg-arrow{font-size:18px;font-weight:700}
+.pg-ellipsis{color:#bbb;padding:0 4px;font-size:14px}
 </style>
 </head>
 <body>
@@ -115,7 +122,8 @@ mark{background:#fff0a0;color:inherit;border-radius:2px;padding:0 1px}
 <script>
 const PASSWORD='lady123';
 const STORAGE_KEY='bam_posts';
-let state={screen:'lock',posts:[],currentPost:null,category:'all',searchQuery:'',searchOpen:false};
+let state={screen:'lock',posts:[],currentPost:null,category:'all',searchQuery:'',searchOpen:false,page:1};
+const PAGE_SIZE=20;
 
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state.posts));}
 function load(){try{state.posts=JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){state.posts=[];}}
@@ -147,7 +155,11 @@ function filterPosts(){
       return inTitle||inBody||inTags;
     });
   }
-  return{posts,q};
+  const totalPosts=posts;
+  const totalPages=Math.max(1,Math.ceil(totalPosts.length/PAGE_SIZE));
+  const pg=Math.min(state.page,totalPages);
+  const paged=totalPosts.slice((pg-1)*PAGE_SIZE, pg*PAGE_SIZE);
+  return{posts:paged,allPosts:totalPosts,q,totalPages,currentPage:pg};
 }
 
 function getShareUrl(id){
@@ -182,7 +194,7 @@ function bindLock(){
 
 /* ── 목록 ── */
 function renderList(){
-  const {posts,q}=filterPosts();
+  const {posts,allPosts,q,totalPages,currentPage}=filterPosts();
   const cat=state.category;
   const all=state.posts,cnt={all:all.length,unused:all.filter(p=>!p.used).length,used:all.filter(p=>p.used).length};
   const searchOpen=state.searchOpen;
@@ -208,7 +220,28 @@ function renderList(){
         </div>
       </div>`;}).join('');
 
-  const searchInfo=q?`<div class="search-info">"${esc(q)}" 검색 결과 ${posts.length}개</div>`:'';
+  const searchInfo=q?`<div class="search-info">"${esc(q)}" 검색 결과 ${allPosts.length}개</div>`:'';
+
+  // 페이지네이션 버튼
+  let pagination='';
+  if(totalPages>1){
+    const pages=[];
+    // 항상 1, 마지막, 현재±2 표시
+    const show=new Set([1,totalPages]);
+    for(let i=Math.max(1,currentPage-2);i<=Math.min(totalPages,currentPage+2);i++) show.add(i);
+    const sorted=[...show].sort((a,b)=>a-b);
+    let prev=0;
+    for(const n of sorted){
+      if(prev&&n-prev>1) pages.push(`<span class="pg-ellipsis">···</span>`);
+      pages.push(`<button class="pg-btn${n===currentPage?' active':''}" data-pg="${n}">${n}</button>`);
+      prev=n;
+    }
+    pagination=`<div class="pagination">
+      <button class="pg-btn pg-arrow${currentPage<=1?' disabled':''}" data-pg="${currentPage-1}" ${currentPage<=1?'disabled':''}>‹</button>
+      ${pages.join('')}
+      <button class="pg-btn pg-arrow${currentPage>=totalPages?' disabled':''}" data-pg="${currentPage+1}" ${currentPage>=totalPages?'disabled':''}>›</button>
+    </div>`;
+  }
 
   return`
     <div class="topbar">
@@ -228,8 +261,10 @@ function renderList(){
       <button class="cat-tab ${cat==='unused'?'active':''}" data-cat="unused">미사용 ${cnt.unused}</button>
       <button class="cat-tab ${cat==='used'?'active':''}" data-cat="used">사용됨 ${cnt.used}</button>
     </div>
-    <div class="list-header">총 ${posts.length}개</div>
+    <div class="list-header">총 ${allPosts.length}개${totalPages>1?` · ${currentPage}/${totalPages} 페이지`:''}</div>
     ${items}
+    ${pagination}
+    <div style="height:80px"></div>
     <button class="fab" id="fab-btn">✏</button>`;
 }
 function bindList(){
@@ -242,13 +277,13 @@ function bindList(){
   // 검색 입력
   const sinp=document.getElementById('search-input');
   if(sinp){
-    sinp.addEventListener('input',()=>{state.searchQuery=sinp.value;render();sinp.focus();});
+    sinp.addEventListener('input',()=>{state.searchQuery=sinp.value;state.page=1;render();sinp.focus();});
     sinp.addEventListener('keydown',e=>{if(e.key==='Escape'){state.searchQuery='';state.searchOpen=false;render();}});
   }
   // 검색 초기화
   document.getElementById('search-clear')?.addEventListener('click',()=>{state.searchQuery='';render();document.getElementById('search-input')?.focus();});
   // 카테고리
-  document.querySelectorAll('.cat-tab').forEach(btn=>btn.addEventListener('click',()=>{state.category=btn.dataset.cat;render();}));
+  document.querySelectorAll('.cat-tab').forEach(btn=>btn.addEventListener('click',()=>{state.category=btn.dataset.cat;state.page=1;render();}));
   // 체크박스
   document.querySelectorAll('.post-card-check input').forEach(cb=>{
     cb.addEventListener('change',e=>{
@@ -262,6 +297,13 @@ function bindList(){
     b.addEventListener('click',()=>{
       state.currentPost=state.posts.find(p=>p.id===b.dataset.id);
       state.screen='detail';render();
+    });
+  });
+  // 페이지네이션
+  document.querySelectorAll('.pg-btn[data-pg]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const pg=parseInt(btn.dataset.pg);
+      if(!btn.disabled&&pg>=1){state.page=pg;window.scrollTo(0,0);render();}
     });
   });
   // FAB
