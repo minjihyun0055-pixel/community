@@ -5,74 +5,105 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>밤문화Talk</title>
 <style>
-:root{--accent:#d93b58;--bg:#f6f6f7;--card:#fff;--border:#e8e8e8;--text:#222;--muted:#999;--max:430px}
+:root{--accent:#d93b58;--bg:#f6f6f7;--border:#e8e8e8;--text:#222;--muted:#999;--max:430px}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
 html,body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;background:var(--bg);color:var(--text);min-height:100dvh}
 button{font:inherit;cursor:pointer}
 .page{max-width:var(--max);margin:0 auto;min-height:100dvh;background:var(--bg)}
+
 /* 상단 바 */
-.topbar{height:56px;display:flex;align-items:center;padding:0 16px;background:#fff;border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100}
-.topbar-logo{font-size:18px;font-weight:800;color:var(--accent);letter-spacing:-.5px}
-.topbar-right{margin-left:auto;display:flex;gap:8px}
-.btn-small{font-size:13px;padding:6px 14px;border:1px solid var(--border);border-radius:6px;background:#fff;color:#333}
-.btn-accent{background:var(--accent);color:#fff;border-color:var(--accent)}
-/* 게시글 목록 */
-.list-header{padding:16px 16px 8px;font-size:13px;color:var(--muted)}
-.post-card{background:#fff;border-bottom:1px solid var(--border);padding:16px;cursor:pointer;transition:background .1s}
-.post-card:active{background:#fafafa}
-.post-card-title{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:6px;color:#111}
-.post-card-preview{font-size:13px;color:#666;line-height:1.5;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-bottom:8px}
-.post-card-meta{font-size:12px;color:var(--muted);display:flex;gap:10px;align-items:center}
-.post-card-badge{display:inline-block;font-size:11px;padding:1px 7px;border:1px solid #e17a8d;border-radius:99px;color:var(--accent);margin-right:4px}
-.fab{position:fixed;right:max(16px,calc((100vw - var(--max)) / 2 + 16px));bottom:24px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:0;font-size:28px;line-height:1;box-shadow:0 4px 16px rgba(0,0,0,.15)}
-/* 비밀번호 화면 */
+.topbar{height:56px;display:flex;align-items:center;padding:0 16px;background:#fff;border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100;gap:8px}
+.topbar-logo{font-size:18px;font-weight:800;color:var(--accent);letter-spacing:-.5px;flex:1}
+.search-toggle{width:36px;height:36px;border:0;background:none;font-size:22px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#555;flex-shrink:0}
+.search-toggle:hover{background:#f5f5f5}
+
+/* 검색창 */
+.search-bar{background:#fff;border-bottom:1px solid var(--border);padding:10px 14px;display:none}
+.search-bar.open{display:block}
+.search-input-wrap{display:flex;align-items:center;background:#f4f4f5;border-radius:10px;padding:0 12px;gap:8px}
+.search-input-wrap span{font-size:16px;color:#999}
+.search-input{flex:1;height:38px;border:0;background:transparent;font-size:14px;font-family:inherit;outline:none;color:#111}
+.search-clear{font-size:18px;color:#bbb;background:none;border:0;padding:0;display:none}
+.search-clear.show{display:block}
+.search-info{font-size:12px;color:var(--muted);margin-top:8px;padding-left:2px}
+
+/* 하이라이트 */
+mark{background:#fff0a0;color:inherit;border-radius:2px;padding:0 1px}
+
+/* 카테고리 탭 */
+.cat-tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:90;transition:top .2s}
+.cat-tabs.with-search{top:112px}
+.cat-tab{flex:1;height:42px;border:0;background:none;font-size:14px;color:var(--muted);font-weight:600;border-bottom:2px solid transparent;transition:all .15s}
+.cat-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* 목록 */
+.list-header{padding:12px 16px 6px;font-size:12px;color:var(--muted)}
+.post-card{background:#fff;border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:flex-start;gap:10px}
+.post-card-check{margin-top:3px;flex-shrink:0}
+.post-card-check input[type=checkbox]{width:17px;height:17px;accent-color:var(--accent);cursor:pointer}
+.post-card-body{flex:1;min-width:0;cursor:pointer}
+.post-card-title{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:5px;color:#111}
+.post-card-title.used{text-decoration:line-through;text-decoration-color:var(--accent);text-decoration-thickness:2px;color:#aaa}
+.post-card-preview{font-size:13px;color:#666;line-height:1.5;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;margin-bottom:7px}
+.post-card-bottom{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.post-card-meta{font-size:12px;color:var(--muted)}
+.tag-list{display:flex;gap:4px;flex-wrap:wrap}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:#fff0f3;color:var(--accent);border:1px solid #ffd0da;font-weight:600}
+.tag.matched{background:#d93b58;color:#fff;border-color:var(--accent)}
+.fab{position:fixed;right:max(16px,calc((100vw - var(--max)) / 2 + 16px));bottom:24px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:0;font-size:28px;box-shadow:0 4px 16px rgba(0,0,0,.15)}
+
+/* 비밀번호 */
 .lock-screen{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:#fff;text-align:center}
 .lock-icon{font-size:48px;margin-bottom:16px}
-.lock-title{font-size:20px;font-weight:700;margin-bottom:8px;color:#111}
+.lock-title{font-size:20px;font-weight:700;margin-bottom:8px}
 .lock-sub{font-size:14px;color:var(--muted);margin-bottom:28px}
 .lock-input{width:100%;max-width:280px;height:48px;border:1.5px solid var(--border);border-radius:10px;padding:0 16px;font-size:16px;text-align:center;letter-spacing:4px;outline:none}
 .lock-input:focus{border-color:var(--accent)}
 .lock-btn{margin-top:14px;width:100%;max-width:280px;height:48px;background:var(--accent);color:#fff;border:0;border-radius:10px;font-size:16px;font-weight:700}
 .lock-err{color:var(--accent);font-size:13px;margin-top:10px;height:18px}
-/* 게시글 작성/보기 */
+
+/* 작성/보기 */
 .detail-topbar{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;background:#fff;border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100}
-.back-btn{font-size:32px;line-height:.6;color:var(--accent);background:none;border:0;padding:0;margin-right:4px}
-.detail-topbar-title{font-size:17px;font-weight:700;color:#111;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.back-btn{font-size:32px;line-height:.6;color:var(--accent);background:none;border:0;padding:0}
+.detail-topbar-title{font-size:17px;font-weight:700;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .post-submit{margin-left:auto;font-size:14px;font-weight:700;color:var(--accent);background:none;border:0;padding:8px 0}
-/* 게시글 본문 */
-.post-head{padding:28px 16px 0}
-.badge-pill{display:inline-flex;align-items:center;height:34px;padding:0 16px;border:2px solid #e17a8d;border-radius:99px;color:var(--accent);font-size:13px;font-weight:700;box-shadow:0 2px 6px rgba(210,70,95,.1)}
-.post-title-view{margin:14px 0 0;font-size:17px;font-weight:700;line-height:1.5;color:#111}
-.post-title-edit{margin:14px 0 0;width:100%;font-size:17px;font-weight:700;line-height:1.5;color:#111;background:transparent;border:0;outline:none;resize:none;min-height:52px;font-family:inherit;white-space:pre-wrap;word-break:keep-all;caret-color:var(--accent)}
+.post-head{padding:24px 16px 0;background:#fff}
+.badge-pill{display:inline-flex;align-items:center;height:28px;padding:0 12px;border:1.5px solid #e17a8d;border-radius:99px;color:var(--accent);font-size:12px;font-weight:700}
+.post-title-edit{margin:12px 0 0;width:100%;font-size:17px;font-weight:700;line-height:1.5;background:transparent;border:0;outline:none;min-height:48px;font-family:inherit;caret-color:var(--accent)}
 .post-title-edit:empty::before{content:attr(data-placeholder);color:#bbb}
-.post-meta{margin-top:14px;padding-bottom:14px;border-bottom:1px solid #d8d8d8;font-size:12px;color:#aaa}
-.post-body-view{padding:24px 16px;font-size:14px;line-height:1.70;color:#343434;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;min-height:200px}
-.post-body-edit{padding:24px 16px;font-size:14px;line-height:1.70;color:#343434;background:#fff;border:0;outline:none;min-height:300px;width:100%;font-family:inherit;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;resize:none;caret-color:var(--accent)}
+.post-meta{margin-top:12px;padding-bottom:12px;border-bottom:1px solid #d8d8d8;font-size:12px;color:#aaa}
+.tag-input-wrap{padding:12px 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.tag-input-label{font-size:12px;color:var(--muted);white-space:nowrap}
+.tag-input{flex:1;height:32px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none}
+.tag-input:focus{border-color:var(--accent)}
+.tag-preview{display:flex;gap:4px;flex-wrap:wrap;padding:8px 16px;background:#fff;min-height:36px}
+.post-body-edit{padding:20px 16px;font-size:14px;line-height:1.70;color:#343434;background:#fff;border:0;outline:none;min-height:280px;width:100%;font-family:inherit;white-space:pre-wrap;word-break:keep-all;resize:none;caret-color:var(--accent)}
 .post-body-edit:empty::before{content:attr(data-placeholder);color:#bbb}
-/* 하단 액션 */
-.post-actions{display:flex;justify-content:center;gap:14px;padding:80px 0 40px;background:#fff}
+.post-body-view{padding:20px 16px;font-size:14px;line-height:1.70;color:#343434;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;min-height:160px;background:#fff}
+.post-actions{display:flex;justify-content:center;gap:14px;padding:60px 0 36px;background:#fff}
 .action-btn{height:46px;min-width:100px;padding:0 14px;border:1px solid #cfcfcf;background:#f8f8f8;color:#555;font-size:14px;border-radius:4px}
+
 /* 댓글 */
 .comments-section{background:#fff;border-top:3px solid var(--accent)}
-.comments-title-bar{height:52px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid #eee;font-size:17px;font-weight:700;color:#111}
+.comments-title-bar{height:52px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid #eee;font-size:17px;font-weight:700}
 .comment-count{color:var(--accent);margin-left:5px}
-.comment-item{padding:16px;border-bottom:1px solid #f0f0f0}
+.comment-item{padding:14px 16px;border-bottom:1px solid #f0f0f0}
 .comment-text{font-size:14px;line-height:1.55;color:#434343}
-.comment-meta{margin-top:8px;font-size:12px;color:#bbb}
-.comment-form{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;background:#fff;position:sticky;bottom:0}
+.comment-meta{margin-top:7px;font-size:12px;color:#bbb}
+.comment-form{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;background:#fff;position:sticky;bottom:0}
 .comment-input{flex:1;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:14px;font-family:inherit;outline:none}
 .comment-input:focus{border-color:var(--accent)}
 .comment-submit{height:40px;padding:0 16px;background:var(--accent);color:#fff;border:0;border-radius:8px;font-size:14px;font-weight:600}
-/* 공유 모달 */
+
+/* 모달 */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:flex-end;justify-content:center}
 .modal-box{background:#fff;border-radius:16px 16px 0 0;padding:24px 20px 40px;width:100%;max-width:var(--max)}
-.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;color:#111}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
 .share-url{width:100%;height:42px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;font-family:inherit;outline:none;color:#555;background:#fafafa}
 .modal-btns{display:flex;gap:10px;margin-top:12px}
 .modal-btn{flex:1;height:44px;border-radius:8px;font-size:15px;font-weight:600;border:0}
 .modal-cancel{background:#f0f0f0;color:#555}
 .modal-copy{background:var(--accent);color:#fff}
-/* 토스트 */
 .toast{position:fixed;left:50%;bottom:100px;transform:translate(-50%,10px);opacity:0;pointer-events:none;z-index:300;padding:10px 18px;border-radius:99px;background:rgba(20,20,20,.85);color:#fff;font-size:13px;white-space:nowrap;transition:opacity .18s,transform .18s}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .empty{padding:60px 16px;text-align:center;color:var(--muted);font-size:14px}
@@ -81,243 +112,219 @@ button{font:inherit;cursor:pointer}
 <body>
 <div class="page" id="app"></div>
 <div class="toast" id="toast"></div>
-
 <script>
-const PASSWORD = 'lady123';
-const STORAGE_KEY = 'bam_posts';
+const PASSWORD='lady123';
+const STORAGE_KEY='bam_posts';
+let state={screen:'lock',posts:[],currentPost:null,category:'all',searchQuery:'',searchOpen:false};
 
-// 상태
-let state = {
-  screen: 'lock', // lock | list | write | detail
-  posts: [],
-  currentPost: null,
-  isEditing: false
-};
+function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state.posts));}
+function load(){try{state.posts=JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){state.posts=[];}}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function fmt(ts){const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function parseTags(s){return(s||'').split(',').map(t=>t.trim()).filter(Boolean);}
+let _toastTimer;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>t.classList.remove('show'),1800);}
 
-// 유틸
-function saveToStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.posts));
-}
-function loadFromStorage() {
-  try { state.posts = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch(e) { state.posts = []; }
-}
-function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
-function formatDate(ts) {
-  const d = new Date(ts);
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0')
-    + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-}
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-let toastTimer;
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+function highlight(text,q){
+  if(!q)return esc(text);
+  const escaped=esc(text);
+  const escapedQ=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return escaped.replace(new RegExp(escapedQ,'gi'),m=>`<mark>${m}</mark>`);
 }
 
-// URL 공유
-function getShareUrl(postId) {
-  const post = state.posts.find(p => p.id === postId);
-  if (!post) return '';
-  const data = btoa(encodeURIComponent(JSON.stringify(post)));
-  return location.origin + location.pathname + '#share=' + data;
-}
-
-function loadSharedPost() {
-  const hash = location.hash;
-  if (!hash.startsWith('#share=')) return false;
-  try {
-    const data = JSON.parse(decodeURIComponent(atob(hash.slice(7))));
-    // 이미 있는지 확인
-    if (!state.posts.find(p => p.id === data.id)) {
-      state.posts.unshift(data);
-      saveToStorage();
-    }
-    state.currentPost = data;
-    state.screen = 'detail';
-    return true;
-  } catch(e) { return false; }
-}
-
-// 렌더
-function render() {
-  const app = document.getElementById('app');
-  if (state.screen === 'lock') { app.innerHTML = renderLock(); bindLock(); return; }
-  if (state.screen === 'list') { app.innerHTML = renderList(); bindList(); return; }
-  if (state.screen === 'write') { app.innerHTML = renderWrite(); bindWrite(); return; }
-  if (state.screen === 'detail') { app.innerHTML = renderDetail(); bindDetail(); return; }
-}
-
-// 비밀번호 화면
-function renderLock() {
-  return `<div class="lock-screen">
-    <div class="lock-icon">🔒</div>
-    <div class="lock-title">밤문화Talk</div>
-    <div class="lock-sub">비밀번호를 입력해주세요</div>
-    <input class="lock-input" id="pw-input" type="password" placeholder="••••••" maxlength="20" autocomplete="off">
-    <button class="lock-btn" id="pw-btn">입장</button>
-    <div class="lock-err" id="pw-err"></div>
-  </div>`;
-}
-function bindLock() {
-  const inp = document.getElementById('pw-input');
-  const btn = document.getElementById('pw-btn');
-  const err = document.getElementById('pw-err');
-  function tryLogin() {
-    if (inp.value === PASSWORD) {
-      sessionStorage.setItem('bam_auth','1');
-      state.screen = 'list';
-      render();
-    } else {
-      err.textContent = '비밀번호가 틀렸어요';
-      inp.value = '';
-      inp.focus();
-    }
+function filterPosts(){
+  let posts=state.posts;
+  const cat=state.category;
+  const q=(state.searchQuery||'').trim().toLowerCase();
+  if(cat==='unused') posts=posts.filter(p=>!p.used);
+  if(cat==='used') posts=posts.filter(p=>p.used);
+  if(q){
+    posts=posts.filter(p=>{
+      const inTitle=(p.title||'').toLowerCase().includes(q);
+      const inBody=(p.body||'').toLowerCase().includes(q);
+      const inTags=(p.tags||[]).some(t=>t.toLowerCase().includes(q));
+      return inTitle||inBody||inTags;
+    });
   }
-  btn.addEventListener('click', tryLogin);
-  inp.addEventListener('keydown', e => { if(e.key==='Enter') tryLogin(); });
+  return{posts,q};
+}
+
+function getShareUrl(id){
+  const p=state.posts.find(x=>x.id===id);if(!p)return'';
+  return location.origin+location.pathname+'#share='+btoa(encodeURIComponent(JSON.stringify(p)));
+}
+function loadShared(){
+  const h=location.hash;if(!h.startsWith('#share='))return false;
+  try{const d=JSON.parse(decodeURIComponent(atob(h.slice(7))));
+    if(!state.posts.find(p=>p.id===d.id)){state.posts.unshift(d);save();}
+    state.currentPost=d;state.screen='detail';return true;}
+  catch(e){return false;}
+}
+
+function render(){
+  const app=document.getElementById('app');
+  if(state.screen==='lock'){app.innerHTML=renderLock();bindLock();return;}
+  if(state.screen==='list'){app.innerHTML=renderList();bindList();return;}
+  if(state.screen==='write'){app.innerHTML=renderWrite();bindWrite();return;}
+  if(state.screen==='detail'){app.innerHTML=renderDetail();bindDetail();return;}
+}
+
+/* ── 잠금 ── */
+function renderLock(){return`<div class="lock-screen"><div class="lock-icon">🔒</div><div class="lock-title">밤문화Talk</div><div class="lock-sub">비밀번호를 입력해주세요</div><input class="lock-input" id="pw" type="password" placeholder="••••••" maxlength="20" autocomplete="off"><button class="lock-btn" id="pw-btn">입장</button><div class="lock-err" id="pw-err"></div></div>`;}
+function bindLock(){
+  const inp=document.getElementById('pw'),err=document.getElementById('pw-err');
+  function go(){if(inp.value===PASSWORD){sessionStorage.setItem('bam_auth','1');state.screen='list';render();}else{err.textContent='비밀번호가 틀렸어요';inp.value='';inp.focus();}}
+  document.getElementById('pw-btn').addEventListener('click',go);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')go();});
   inp.focus();
 }
 
-// 목록
-function renderList() {
-  const posts = state.posts;
-  const items = posts.length === 0
-    ? `<div class="empty">아직 글이 없어요<br>첫 글을 작성해보세요 ✏️</div>`
-    : posts.map(p => `
-      <div class="post-card" data-id="${p.id}">
-        <div class="post-card-title"><span class="post-card-badge">밤문화Talk</span>${esc(p.title)}</div>
-        <div class="post-card-preview">${esc(p.body.slice(0,60))}</div>
-        <div class="post-card-meta">
-          <span>[비회원]익명</span>
-          <span>${formatDate(p.createdAt)}</span>
-          <span>💬 ${(p.comments||[]).length}</span>
+/* ── 목록 ── */
+function renderList(){
+  const {posts,q}=filterPosts();
+  const cat=state.category;
+  const all=state.posts,cnt={all:all.length,unused:all.filter(p=>!p.used).length,used:all.filter(p=>p.used).length};
+  const searchOpen=state.searchOpen;
+
+  const items=posts.length===0
+    ?`<div class="empty">${q?'검색 결과가 없어요 🔍':'글이 없어요'}</div>`
+    :posts.map(p=>{
+      const titleHtml=highlight(p.title,q);
+      const previewHtml=highlight((p.body||'').slice(0,60),q);
+      const tagsHtml=(p.tags||[]).map(t=>{
+        const matched=q&&t.toLowerCase().includes(q);
+        return`<span class="tag${matched?' matched':''}">#${highlight(t,q)}</span>`;
+      }).join('');
+      return`<div class="post-card">
+        <div class="post-card-check"><input type="checkbox" data-id="${p.id}" ${p.used?'checked':''}></div>
+        <div class="post-card-body" data-id="${p.id}">
+          <div class="post-card-title ${p.used?'used':''}">${titleHtml}</div>
+          <div class="post-card-preview">${previewHtml}</div>
+          <div class="post-card-bottom">
+            ${tagsHtml?`<div class="tag-list">${tagsHtml}</div>`:''}
+            <span class="post-card-meta">${fmt(p.createdAt)} · 💬${(p.comments||[]).length}</span>
+          </div>
         </div>
-      </div>`).join('');
-  return `
+      </div>`;}).join('');
+
+  const searchInfo=q?`<div class="search-info">"${esc(q)}" 검색 결과 ${posts.length}개</div>`:'';
+
+  return`
     <div class="topbar">
       <span class="topbar-logo">밤문화Talk</span>
+      <button class="search-toggle" id="search-toggle" title="검색">🔍</button>
     </div>
-    <div class="list-header">총 ${posts.length}개의 글</div>
+    <div class="search-bar ${searchOpen?'open':''}" id="search-bar">
+      <div class="search-input-wrap">
+        <span>🔍</span>
+        <input class="search-input" id="search-input" placeholder="제목, 본문, 태그 검색..." value="${esc(state.searchQuery)}" autocomplete="off">
+        <button class="search-clear ${state.searchQuery?'show':''}" id="search-clear">✕</button>
+      </div>
+      ${searchInfo}
+    </div>
+    <div class="cat-tabs ${searchOpen?'with-search':''}">
+      <button class="cat-tab ${cat==='all'?'active':''}" data-cat="all">전체 ${cnt.all}</button>
+      <button class="cat-tab ${cat==='unused'?'active':''}" data-cat="unused">미사용 ${cnt.unused}</button>
+      <button class="cat-tab ${cat==='used'?'active':''}" data-cat="used">사용됨 ${cnt.used}</button>
+    </div>
+    <div class="list-header">총 ${posts.length}개</div>
     ${items}
     <button class="fab" id="fab-btn">✏</button>`;
 }
-function bindList() {
-  document.getElementById('fab-btn').addEventListener('click', () => {
-    state.screen = 'write';
-    state.isEditing = false;
-    state.currentPost = null;
+function bindList(){
+  // 검색 토글
+  document.getElementById('search-toggle').addEventListener('click',()=>{
+    state.searchOpen=!state.searchOpen;
     render();
+    if(state.searchOpen) document.getElementById('search-input')?.focus();
   });
-  document.querySelectorAll('.post-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const id = card.dataset.id;
-      state.currentPost = state.posts.find(p => p.id === id);
-      state.screen = 'detail';
-      render();
+  // 검색 입력
+  const sinp=document.getElementById('search-input');
+  if(sinp){
+    sinp.addEventListener('input',()=>{state.searchQuery=sinp.value;render();sinp.focus();});
+    sinp.addEventListener('keydown',e=>{if(e.key==='Escape'){state.searchQuery='';state.searchOpen=false;render();}});
+  }
+  // 검색 초기화
+  document.getElementById('search-clear')?.addEventListener('click',()=>{state.searchQuery='';render();document.getElementById('search-input')?.focus();});
+  // 카테고리
+  document.querySelectorAll('.cat-tab').forEach(btn=>btn.addEventListener('click',()=>{state.category=btn.dataset.cat;render();}));
+  // 체크박스
+  document.querySelectorAll('.post-card-check input').forEach(cb=>{
+    cb.addEventListener('change',e=>{
+      e.stopPropagation();
+      const p=state.posts.find(x=>x.id===cb.dataset.id);
+      if(p){p.used=cb.checked;save();render();}
     });
   });
+  // 카드 클릭
+  document.querySelectorAll('.post-card-body').forEach(b=>{
+    b.addEventListener('click',()=>{
+      state.currentPost=state.posts.find(p=>p.id===b.dataset.id);
+      state.screen='detail';render();
+    });
+  });
+  // FAB
+  document.getElementById('fab-btn').addEventListener('click',()=>{state.screen='write';state.currentPost=null;render();});
 }
 
-// 글 작성
-function renderWrite() {
-  const p = state.currentPost;
-  const title = p ? esc(p.title) : '';
-  const body = p ? esc(p.body) : '';
-  return `
+/* ── 작성 ── */
+function renderWrite(){
+  const p=state.currentPost;
+  return`
     <div class="detail-topbar">
       <button class="back-btn" id="back-btn">‹</button>
-      <span class="detail-topbar-title">글 작성</span>
+      <span class="detail-topbar-title">${p?'글 수정':'글 작성'}</span>
       <button class="post-submit" id="submit-btn">등록</button>
     </div>
     <div style="background:#fff;min-height:calc(100dvh - 56px);padding-bottom:40px">
       <div class="post-head">
         <div class="badge-pill">밤문화Talk</div>
-        <div class="post-title-edit" id="post-title" contenteditable="true" data-placeholder="제목을 입력하세요" spellcheck="false">${title}</div>
+        <div class="post-title-edit" id="post-title" contenteditable="true" data-placeholder="제목을 입력하세요" spellcheck="false">${p?esc(p.title):''}</div>
         <div class="post-meta">[비회원]익명 &nbsp;|&nbsp; 오늘</div>
       </div>
-      <div class="post-body-edit" id="post-body" contenteditable="true" data-placeholder="내용을 입력하세요" spellcheck="false">${body}</div>
+      <div class="tag-input-wrap">
+        <span class="tag-input-label">태그</span>
+        <input class="tag-input" id="tag-input" placeholder="예: 룸, 가라오케 (쉼표로 구분)" value="${esc((p?.tags||[]).join(', '))}">
+      </div>
+      <div class="tag-preview" id="tag-preview"></div>
+      <div class="post-body-edit" id="post-body" contenteditable="true" data-placeholder="내용을 입력하세요" spellcheck="false">${p?esc(p.body):''}</div>
     </div>`;
 }
-function bindWrite() {
-  document.getElementById('back-btn').addEventListener('click', () => {
-    state.screen = state.currentPost ? 'detail' : 'list';
+function bindWrite(){
+  document.getElementById('back-btn').addEventListener('click',()=>{state.screen=state.currentPost?'detail':'list';render();});
+  const titleEl=document.getElementById('post-title');
+  const bodyEl=document.getElementById('post-body');
+  const tagInp=document.getElementById('tag-input');
+  const tagPrev=document.getElementById('tag-preview');
+  function updTags(){tagPrev.innerHTML=parseTags(tagInp.value).map(t=>`<span class="tag">#${esc(t)}</span>`).join('');}
+  tagInp.addEventListener('input',updTags);updTags();
+  [titleEl,bodyEl].forEach(el=>{
+    el.addEventListener('paste',e=>{e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));});
+    el.addEventListener('input',()=>{if(!el.textContent.trim())el.innerHTML='';});
+  });
+  bodyEl.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();const sel=window.getSelection();const r=sel.getRangeAt(0);sel.deleteFromDocument();const n=document.createTextNode('\n');r.insertNode(n);r.setStartAfter(n);r.collapse(true);sel.removeAllRanges();sel.addRange(r);}
+  });
+  titleEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();bodyEl.focus();}});
+  document.getElementById('submit-btn').addEventListener('click',()=>{
+    const title=titleEl.innerText.trim(),body=bodyEl.innerText.trim(),tags=parseTags(tagInp.value);
+    if(!title){titleEl.focus();toast('제목을 입력해주세요');return;}
+    if(!body){bodyEl.focus();toast('내용을 입력해주세요');return;}
+    if(state.currentPost){Object.assign(state.currentPost,{title,body,tags});save();state.screen='detail';}
+    else{const post={id:genId(),title,body,tags,used:false,createdAt:Date.now(),comments:[]};state.posts.unshift(post);state.currentPost=post;save();state.screen='detail';}
     render();
   });
-  const titleEl = document.getElementById('post-title');
-  const bodyEl = document.getElementById('post-body');
-
-  // 붙여넣기 시 plain text
-  [titleEl, bodyEl].forEach(el => {
-    el.addEventListener('paste', e => {
-      e.preventDefault();
-      const text = e.clipboardData.getData('text/plain');
-      document.execCommand('insertText', false, text);
-    });
-    el.addEventListener('input', () => {
-      if (!el.textContent.trim()) el.innerHTML = '';
-    });
-  });
-
-  // 엔터 처리 (body만)
-  bodyEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const sel = window.getSelection();
-      const range = sel.getRangeAt(0);
-      sel.deleteFromDocument();
-      const node = document.createTextNode('\n');
-      range.insertNode(node);
-      range.setStartAfter(node);
-      range.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
-  });
-  titleEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); bodyEl.focus(); }
-  });
-
-  document.getElementById('submit-btn').addEventListener('click', () => {
-    const title = titleEl.innerText.trim();
-    const body = bodyEl.innerText.trim();
-    if (!title) { titleEl.focus(); showToast('제목을 입력해주세요'); return; }
-    if (!body) { bodyEl.focus(); showToast('내용을 입력해주세요'); return; }
-
-    if (state.currentPost) {
-      // 수정
-      state.currentPost.title = title;
-      state.currentPost.body = body;
-      saveToStorage();
-      state.screen = 'detail';
-    } else {
-      // 신규
-      const post = { id: genId(), title, body, createdAt: Date.now(), comments: [] };
-      state.posts.unshift(post);
-      state.currentPost = post;
-      saveToStorage();
-      state.screen = 'detail';
-    }
-    render();
-  });
-
-  // 포커스
-  if (!state.currentPost) titleEl.focus();
+  if(!state.currentPost)titleEl.focus();
 }
 
-// 상세 보기
-function renderDetail() {
-  const p = state.currentPost;
-  if (!p) { state.screen = 'list'; render(); return ''; }
-  const comments = (p.comments || []).map(c => `
-    <div class="comment-item">
-      <div class="comment-text">${esc(c.text)}</div>
-      <div class="comment-meta">익명 | ${formatDate(c.createdAt)}</div>
-    </div>`).join('');
-  return `
+/* ── 상세 ── */
+function renderDetail(){
+  const p=state.currentPost;
+  if(!p){state.screen='list';render();return'';}
+  const tags=(p.tags||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join('');
+  const comments=(p.comments||[]).map(c=>`<div class="comment-item"><div class="comment-text">${esc(c.text)}</div><div class="comment-meta">익명 | ${fmt(c.createdAt)}</div></div>`).join('');
+  return`
     <div class="detail-topbar">
       <button class="back-btn" id="back-btn">‹</button>
       <span class="detail-topbar-title">${esc(p.title)}</span>
@@ -326,8 +333,9 @@ function renderDetail() {
     <div style="background:#fff">
       <div class="post-head">
         <div class="badge-pill">밤문화Talk</div>
-        <h1 class="post-title-view">${esc(p.title)}</h1>
-        <div class="post-meta">[비회원]익명 &nbsp;|&nbsp; ${formatDate(p.createdAt)}</div>
+        <h1 style="margin:12px 0 0;font-size:17px;font-weight:700;line-height:1.5;${p.used?'text-decoration:line-through;text-decoration-color:#d93b58;color:#aaa':''}">${esc(p.title)}</h1>
+        ${tags?`<div class="tag-list" style="margin-top:10px">${tags}</div>`:''}
+        <div class="post-meta">[비회원]익명 &nbsp;|&nbsp; ${fmt(p.createdAt)}</div>
       </div>
       <div class="post-body-view">${esc(p.body)}</div>
       <div class="post-actions">
@@ -337,76 +345,43 @@ function renderDetail() {
     </div>
     <div class="comments-section">
       <div class="comments-title-bar">✎ 댓글 <span class="comment-count">${(p.comments||[]).length}개</span></div>
-      ${comments || '<div class="empty" style="padding:30px 16px">댓글이 없어요</div>'}
+      ${comments||'<div class="empty" style="padding:28px 16px">댓글이 없어요</div>'}
       <div class="comment-form">
-        <input class="comment-input" id="comment-input" placeholder="댓글을 입력하세요..." maxlength="300">
+        <input class="comment-input" id="comment-input" placeholder="댓글 입력..." maxlength="300">
         <button class="comment-submit" id="comment-submit">등록</button>
       </div>
     </div>`;
 }
-function bindDetail() {
-  const p = state.currentPost;
-  document.getElementById('back-btn').addEventListener('click', () => {
-    state.screen = 'list'; render();
+function bindDetail(){
+  const p=state.currentPost;
+  document.getElementById('back-btn').addEventListener('click',()=>{state.screen='list';render();});
+  document.getElementById('edit-btn').addEventListener('click',()=>{state.screen='write';render();});
+  document.getElementById('delete-btn').addEventListener('click',()=>{
+    if(!confirm('삭제할까요?'))return;
+    state.posts=state.posts.filter(x=>x.id!==p.id);save();state.screen='list';state.currentPost=null;render();
   });
-  document.getElementById('edit-btn').addEventListener('click', () => {
-    state.screen = 'write'; state.isEditing = true; render();
+  document.getElementById('share-btn').addEventListener('click',()=>{
+    const url=getShareUrl(p.id);
+    const ov=document.createElement('div');ov.className='modal-overlay';
+    ov.innerHTML=`<div class="modal-box"><div class="modal-title">링크 공유</div><input class="share-url" id="surl" value="${url}" readonly><div class="modal-btns"><button class="modal-btn modal-cancel" id="mc">닫기</button><button class="modal-btn modal-copy" id="mcp">복사</button></div></div>`;
+    document.body.appendChild(ov);
+    document.getElementById('surl').select();
+    document.getElementById('mcp').addEventListener('click',()=>{navigator.clipboard.writeText(url).then(()=>toast('링크 복사됐어요'));document.body.removeChild(ov);});
+    document.getElementById('mc').addEventListener('click',()=>document.body.removeChild(ov));
+    ov.addEventListener('click',e=>{if(e.target===ov)document.body.removeChild(ov);});
   });
-  document.getElementById('delete-btn').addEventListener('click', () => {
-    if (!confirm('글을 삭제할까요?')) return;
-    state.posts = state.posts.filter(x => x.id !== p.id);
-    saveToStorage();
-    state.screen = 'list';
-    state.currentPost = null;
-    render();
+  const inp=document.getElementById('comment-input');
+  document.getElementById('comment-submit').addEventListener('click',()=>{
+    const text=inp.value.trim();if(!text)return;
+    if(!p.comments)p.comments=[];
+    p.comments.push({id:genId(),text,createdAt:Date.now()});save();render();
   });
-
-  // 공유
-  document.getElementById('share-btn').addEventListener('click', () => {
-    const url = getShareUrl(p.id);
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.innerHTML = `<div class="modal-box">
-      <div class="modal-title">링크 공유</div>
-      <input class="share-url" id="share-url-input" value="${url}" readonly>
-      <div class="modal-btns">
-        <button class="modal-btn modal-cancel" id="modal-cancel">닫기</button>
-        <button class="modal-btn modal-copy" id="modal-copy">복사</button>
-      </div>
-    </div>`;
-    document.body.appendChild(overlay);
-    document.getElementById('share-url-input').select();
-    document.getElementById('modal-copy').addEventListener('click', () => {
-      navigator.clipboard.writeText(url).then(() => showToast('링크 복사됐어요'));
-      document.body.removeChild(overlay);
-    });
-    document.getElementById('modal-cancel').addEventListener('click', () => document.body.removeChild(overlay));
-    overlay.addEventListener('click', e => { if(e.target===overlay) document.body.removeChild(overlay); });
-  });
-
-  // 댓글
-  const inp = document.getElementById('comment-input');
-  document.getElementById('comment-submit').addEventListener('click', () => {
-    const text = inp.value.trim();
-    if (!text) return;
-    if (!p.comments) p.comments = [];
-    p.comments.push({ id: genId(), text, createdAt: Date.now() });
-    saveToStorage();
-    render();
-  });
-  inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('comment-submit').click();
-  });
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('comment-submit').click();});
 }
 
-// 초기화
-loadFromStorage();
-if (sessionStorage.getItem('bam_auth') === '1') {
-  if (!loadSharedPost()) { state.screen = 'list'; }
-} else {
-  if (!loadSharedPost()) { state.screen = 'lock'; }
-  else { sessionStorage.setItem('bam_auth','1'); }
-}
+load();
+if(sessionStorage.getItem('bam_auth')==='1'){if(!loadShared()){state.screen='list';}}
+else{if(!loadShared()){state.screen='lock';}else{sessionStorage.setItem('bam_auth','1');}}
 render();
 </script>
 </body>
