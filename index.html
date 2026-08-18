@@ -121,12 +121,39 @@ mark{background:#fff0a0;color:inherit;border-radius:2px;padding:0 1px}
 <div class="toast" id="toast"></div>
 <script>
 const PASSWORD='lady123';
+const SB_URL='https://gilafrwetspmwtimsqez.supabase.co';
+const SB_KEY='sb_publishable_uvzF0NuMLe1kkQQcv7xkpQ_VgEz-5fC';
 const STORAGE_KEY='bam_posts';
 let state={screen:'lock',posts:[],currentPost:null,category:'all',searchQuery:'',searchOpen:false,page:1};
 const PAGE_SIZE=20;
 
-function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state.posts));}
-function load(){try{state.posts=JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){state.posts=[];}}
+const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
+
+async function save(){
+  // 전체 동기화: 변경된 글만 upsert
+  const res=await fetch(SB_URL+'/rest/v1/posts',{
+    method:'POST',
+    headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify(state.posts)
+  });
+}
+async function saveSingle(post){
+  await fetch(SB_URL+'/rest/v1/posts',{
+    method:'POST',
+    headers:{...SB_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify(post)
+  });
+}
+async function deleteSingle(id){
+  await fetch(SB_URL+'/rest/v1/posts?id=eq.'+id,{method:'DELETE',headers:SB_HEADERS});
+}
+async function load(){
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/posts?select=*&order=created_at.desc',{headers:SB_HEADERS});
+    state.posts=await res.json();
+    if(!Array.isArray(state.posts))state.posts=[];
+  }catch(e){state.posts=[];}
+}
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function fmt(ts){const d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -186,7 +213,23 @@ function render(){
 function renderLock(){return`<div class="lock-screen"><div class="lock-icon">🔒</div><div class="lock-title">밤문화Talk</div><div class="lock-sub">비밀번호를 입력해주세요</div><input class="lock-input" id="pw" type="password" placeholder="••••••" maxlength="20" autocomplete="off"><button class="lock-btn" id="pw-btn">입장</button><div class="lock-err" id="pw-err"></div></div>`;}
 function bindLock(){
   const inp=document.getElementById('pw'),err=document.getElementById('pw-err');
-  function go(){if(inp.value===PASSWORD){sessionStorage.setItem('bam_auth','1');state.screen='list';render();}else{err.textContent='비밀번호가 틀렸어요';inp.value='';inp.focus();}}
+  function go(){
+    if(inp.value===PASSWORD){
+      sessionStorage.setItem('bam_auth','1');
+      const redirect=sessionStorage.getItem('bam_redirect');
+      if(redirect){
+        sessionStorage.removeItem('bam_redirect');
+        location.hash=redirect.slice(1); // hash 다시 설정
+        loadShared();
+        state.screen='detail';
+      } else {
+        state.screen='list';
+      }
+      render();
+    } else {
+      err.textContent='비밀번호가 틀렸어요';inp.value='';inp.focus();
+    }
+  }
   document.getElementById('pw-btn').addEventListener('click',go);
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')go();});
   inp.focus();
@@ -215,7 +258,7 @@ function renderList(){
           <div class="post-card-preview">${previewHtml}</div>
           <div class="post-card-bottom">
             ${tagsHtml?`<div class="tag-list">${tagsHtml}</div>`:''}
-            <span class="post-card-meta">${fmt(p.createdAt)} · 💬${(p.comments||[]).length}</span>
+            <span class="post-card-meta">${fmt(p.created_at)} · 💬${(p.comments||[]).length}</span>
           </div>
         </div>
       </div>`;}).join('');
@@ -289,7 +332,7 @@ function bindList(){
     cb.addEventListener('change',e=>{
       e.stopPropagation();
       const p=state.posts.find(x=>x.id===cb.dataset.id);
-      if(p){p.used=cb.checked;save();render();}
+      if(p){p.used=cb.checked;saveSingle(p).then(()=>render());}
     });
   });
   // 카드 클릭
@@ -353,8 +396,8 @@ function bindWrite(){
     const title=titleEl.innerText.trim(),body=bodyEl.innerText.trim(),tags=parseTags(tagInp.value);
     if(!title){titleEl.focus();toast('제목을 입력해주세요');return;}
     if(!body){bodyEl.focus();toast('내용을 입력해주세요');return;}
-    if(state.currentPost){Object.assign(state.currentPost,{title,body,tags});save();state.screen='detail';}
-    else{const post={id:genId(),title,body,tags,used:false,createdAt:Date.now(),comments:[]};state.posts.unshift(post);state.currentPost=post;save();state.screen='detail';}
+    if(state.currentPost){Object.assign(state.currentPost,{title,body,tags});saveSingle(state.currentPost).then(()=>{state.screen="detail";render();});}
+    else{const post={id:genId(),title,body,tags,used:false,created_at:Date.now(),comments:[]};state.posts.unshift(post);state.currentPost=post;saveSingle(post).then(()=>{state.screen="detail";render();});}
     render();
   });
   if(!state.currentPost)titleEl.focus();
@@ -377,7 +420,7 @@ function renderDetail(){
         <div class="badge-pill">밤문화Talk</div>
         <h1 style="margin:12px 0 0;font-size:17px;font-weight:700;line-height:1.5;${p.used?'text-decoration:line-through;text-decoration-color:#d93b58;color:#aaa':''}">${esc(p.title)}</h1>
         ${tags?`<div class="tag-list" style="margin-top:10px">${tags}</div>`:''}
-        <div class="post-meta">[비회원]익명 &nbsp;|&nbsp; ${fmt(p.createdAt)}</div>
+        <div class="post-meta">[비회원]익명 &nbsp;|&nbsp; ${fmt(p.created_at)}</div>
       </div>
       <div class="post-body-view">${esc(p.body)}</div>
       <div class="post-actions">
@@ -400,7 +443,8 @@ function bindDetail(){
   document.getElementById('edit-btn').addEventListener('click',()=>{state.screen='write';render();});
   document.getElementById('delete-btn').addEventListener('click',()=>{
     if(!confirm('삭제할까요?'))return;
-    state.posts=state.posts.filter(x=>x.id!==p.id);save();state.screen='list';state.currentPost=null;render();
+    state.posts=state.posts.filter(x=>x.id!==p.id);
+    deleteSingle(p.id).then(()=>{state.screen='list';state.currentPost=null;render();});
   });
   document.getElementById('share-btn').addEventListener('click',()=>{
     const url=getShareUrl(p.id);
@@ -416,15 +460,24 @@ function bindDetail(){
   document.getElementById('comment-submit').addEventListener('click',()=>{
     const text=inp.value.trim();if(!text)return;
     if(!p.comments)p.comments=[];
-    p.comments.push({id:genId(),text,createdAt:Date.now()});save();render();
+    p.comments.push({id:genId(),text,createdAt:Date.now()});saveSingle(p).then(()=>render());
   });
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('comment-submit').click();});
 }
 
-load();
-if(sessionStorage.getItem('bam_auth')==='1'){if(!loadShared()){state.screen='list';}}
-else{if(!loadShared()){state.screen='lock';}else{sessionStorage.setItem('bam_auth','1');}}
-render();
+(async()=>{
+  await load();
+  const _hash=location.hash;
+  if(_hash.startsWith('#share=')){
+    sessionStorage.setItem('bam_redirect',_hash);
+    if(sessionStorage.getItem('bam_auth')==='1'){loadShared();state.screen='detail';}
+    else{state.screen='lock';}
+  } else {
+    if(sessionStorage.getItem('bam_auth')==='1'){state.screen='list';}
+    else{state.screen='lock';}
+  }
+  render();
+})();
 </script>
 </body>
 </html>
