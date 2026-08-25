@@ -236,17 +236,12 @@ function bindLock(){
 }
 
 /* ── 목록 ── */
-function renderList(){
+// 목록 아이템 + 페이지네이션 HTML 생성
+function renderListItems(){
   const {posts,allPosts,q,totalPages,currentPage}=filterPosts();
-  const cat=state.category;
-  const all=state.posts,cnt={all:all.length,unused:all.filter(p=>!p.used).length,used:all.filter(p=>p.used).length};
-  const searchOpen=state.searchOpen;
-
   const items=posts.length===0
     ?`<div class="empty">${q?'검색 결과가 없어요 🔍':'글이 없어요'}</div>`
     :posts.map(p=>{
-      const titleHtml=highlight(p.title,q);
-      const previewHtml=highlight((p.body||'').slice(0,60),q);
       const tagsHtml=(p.tags||[]).map(t=>{
         const matched=q&&t.toLowerCase().includes(q);
         return`<span class="tag${matched?' matched':''}">#${highlight(t,q)}</span>`;
@@ -254,8 +249,8 @@ function renderList(){
       return`<div class="post-card">
         <div class="post-card-check"><input type="checkbox" data-id="${p.id}" ${p.used?'checked':''}></div>
         <div class="post-card-body" data-id="${p.id}">
-          <div class="post-card-title ${p.used?'used':''}">${titleHtml}</div>
-          <div class="post-card-preview">${previewHtml}</div>
+          <div class="post-card-title ${p.used?'used':''}">${highlight(p.title,q)}</div>
+          <div class="post-card-preview">${highlight((p.body||'').slice(0,60),q)}</div>
           <div class="post-card-bottom">
             ${tagsHtml?`<div class="tag-list">${tagsHtml}</div>`:''}
             <span class="post-card-meta">${fmt(p.created_at)} · 💬${(p.comments||[]).length}</span>
@@ -263,28 +258,71 @@ function renderList(){
         </div>
       </div>`;}).join('');
 
-  const searchInfo=q?`<div class="search-info">"${esc(q)}" 검색 결과 ${allPosts.length}개</div>`:'';
-
-  // 페이지네이션 버튼
   let pagination='';
   if(totalPages>1){
-    const pages=[];
-    // 항상 1, 마지막, 현재±2 표시
     const show=new Set([1,totalPages]);
     for(let i=Math.max(1,currentPage-2);i<=Math.min(totalPages,currentPage+2);i++) show.add(i);
     const sorted=[...show].sort((a,b)=>a-b);
-    let prev=0;
+    let prev=0,pages=[];
     for(const n of sorted){
       if(prev&&n-prev>1) pages.push(`<span class="pg-ellipsis">···</span>`);
       pages.push(`<button class="pg-btn${n===currentPage?' active':''}" data-pg="${n}">${n}</button>`);
       prev=n;
     }
     pagination=`<div class="pagination">
-      <button class="pg-btn pg-arrow${currentPage<=1?' disabled':''}" data-pg="${currentPage-1}" ${currentPage<=1?'disabled':''}>‹</button>
+      <button class="pg-btn pg-arrow" data-pg="${currentPage-1}" ${currentPage<=1?'disabled':''}>‹</button>
       ${pages.join('')}
-      <button class="pg-btn pg-arrow${currentPage>=totalPages?' disabled':''}" data-pg="${currentPage+1}" ${currentPage>=totalPages?'disabled':''}>›</button>
+      <button class="pg-btn pg-arrow" data-pg="${currentPage+1}" ${currentPage>=totalPages?'disabled':''}>›</button>
     </div>`;
   }
+
+  return{
+    html:`<div class="list-header">총 ${allPosts.length}개${totalPages>1?` · ${currentPage}/${totalPages} 페이지`:''}</div>${items}${pagination}<div style="height:80px"></div>`,
+    count:allPosts.length,
+    q
+  };
+}
+
+// 검색/페이지 이동 시 목록만 갱신 (검색창 DOM 유지 → 한글 IME 정상)
+function updateListOnly(){
+  const {html,count,q}=renderListItems();
+  const c=document.getElementById('list-container');
+  if(c)c.innerHTML=html;
+  const info=document.getElementById('search-info-el');
+  if(info)info.innerHTML=q?`"${esc(q)}" 검색 결과 ${count}개`:'';
+  const clr=document.getElementById('search-clear');
+  if(clr)clr.classList.toggle('show',!!state.searchQuery);
+  bindListItems();
+}
+
+function bindListItems(){
+  document.querySelectorAll('.pg-btn[data-pg]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const pg=parseInt(btn.dataset.pg);
+      if(!btn.disabled&&pg>=1){state.page=pg;window.scrollTo(0,0);updateListOnly();}
+    });
+  });
+  document.querySelectorAll('.post-card-check input').forEach(cb=>{
+    cb.addEventListener('change',e=>{
+      e.stopPropagation();
+      const p=state.posts.find(x=>x.id===cb.dataset.id);
+      if(p){p.used=cb.checked;saveSingle(p).then(()=>updateListOnly());}
+    });
+  });
+  document.querySelectorAll('.post-card-body').forEach(b=>{
+    b.addEventListener('click',()=>{
+      state.currentPost=state.posts.find(p=>p.id===b.dataset.id);
+      state.screen='detail';render();
+    });
+  });
+}
+
+function renderList(){
+  const cat=state.category;
+  const all=state.posts,cnt={all:all.length,unused:all.filter(p=>!p.used).length,used:all.filter(p=>p.used).length};
+  const searchOpen=state.searchOpen;
+  const {html,count,q}=renderListItems();
+  const searchInfo=q?`"${esc(q)}" 검색 결과 ${count}개`:'';
 
   return`
     <div class="topbar">
@@ -297,60 +335,63 @@ function renderList(){
         <input class="search-input" id="search-input" placeholder="제목, 본문, 태그 검색..." value="${esc(state.searchQuery)}" autocomplete="off">
         <button class="search-clear ${state.searchQuery?'show':''}" id="search-clear">✕</button>
       </div>
-      ${searchInfo}
+      <div class="search-info" id="search-info-el">${searchInfo}</div>
     </div>
     <div class="cat-tabs ${searchOpen?'with-search':''}">
       <button class="cat-tab ${cat==='all'?'active':''}" data-cat="all">전체 ${cnt.all}</button>
       <button class="cat-tab ${cat==='unused'?'active':''}" data-cat="unused">미사용 ${cnt.unused}</button>
       <button class="cat-tab ${cat==='used'?'active':''}" data-cat="used">사용됨 ${cnt.used}</button>
     </div>
-    <div class="list-header">총 ${allPosts.length}개${totalPages>1?` · ${currentPage}/${totalPages} 페이지`:''}</div>
-    ${items}
-    ${pagination}
-    <div style="height:80px"></div>
+    <div id="list-container">${html}</div>
     <button class="fab" id="fab-btn">✏</button>`;
 }
+
 function bindList(){
-  // 검색 토글
   document.getElementById('search-toggle').addEventListener('click',()=>{
     state.searchOpen=!state.searchOpen;
-    render();
-    if(state.searchOpen) document.getElementById('search-input')?.focus();
+    document.getElementById('search-bar').classList.toggle('open',state.searchOpen);
+    document.querySelector('.cat-tabs').classList.toggle('with-search',state.searchOpen);
+    if(state.searchOpen)document.getElementById('search-input')?.focus();
   });
-  // 검색 입력
+
   const sinp=document.getElementById('search-input');
   if(sinp){
-    sinp.addEventListener('input',()=>{state.searchQuery=sinp.value;state.page=1;render();sinp.focus();});
-    sinp.addEventListener('keydown',e=>{if(e.key==='Escape'){state.searchQuery='';state.searchOpen=false;render();}});
+    let composing=false;
+    sinp.addEventListener('compositionstart',()=>{composing=true;});
+    sinp.addEventListener('compositionend',()=>{
+      composing=false;
+      state.searchQuery=sinp.value;state.page=1;updateListOnly();
+    });
+    sinp.addEventListener('input',()=>{
+      if(composing)return;
+      state.searchQuery=sinp.value;state.page=1;updateListOnly();
+    });
+    sinp.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){sinp.value='';state.searchQuery='';state.searchOpen=false;render();}
+    });
   }
-  // 검색 초기화
-  document.getElementById('search-clear')?.addEventListener('click',()=>{state.searchQuery='';render();document.getElementById('search-input')?.focus();});
-  // 카테고리
-  document.querySelectorAll('.cat-tab').forEach(btn=>btn.addEventListener('click',()=>{state.category=btn.dataset.cat;state.page=1;render();}));
-  // 체크박스
-  document.querySelectorAll('.post-card-check input').forEach(cb=>{
-    cb.addEventListener('change',e=>{
-      e.stopPropagation();
-      const p=state.posts.find(x=>x.id===cb.dataset.id);
-      if(p){p.used=cb.checked;saveSingle(p).then(()=>render());}
-    });
+
+  document.getElementById('search-clear')?.addEventListener('click',()=>{
+    const si=document.getElementById('search-input');
+    if(si)si.value='';
+    state.searchQuery='';state.page=1;updateListOnly();
+    si?.focus();
   });
-  // 카드 클릭
-  document.querySelectorAll('.post-card-body').forEach(b=>{
-    b.addEventListener('click',()=>{
-      state.currentPost=state.posts.find(p=>p.id===b.dataset.id);
-      state.screen='detail';render();
-    });
-  });
-  // 페이지네이션
-  document.querySelectorAll('.pg-btn[data-pg]').forEach(btn=>{
+
+  document.querySelectorAll('.cat-tab').forEach(btn=>{
     btn.addEventListener('click',()=>{
-      const pg=parseInt(btn.dataset.pg);
-      if(!btn.disabled&&pg>=1){state.page=pg;window.scrollTo(0,0);render();}
+      state.category=btn.dataset.cat;state.page=1;
+      document.querySelectorAll('.cat-tab').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      updateListOnly();
     });
   });
-  // FAB
-  document.getElementById('fab-btn').addEventListener('click',()=>{state.screen='write';state.currentPost=null;render();});
+
+  document.getElementById('fab-btn').addEventListener('click',()=>{
+    state.screen='write';state.currentPost=null;render();
+  });
+
+  bindListItems();
 }
 
 /* ── 작성 ── */
