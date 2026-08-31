@@ -88,8 +88,17 @@ mark{background:#fff0a0;color:inherit;border-radius:2px;padding:0 1px}
 .comments-title-bar{height:52px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid #eee;font-size:17px;font-weight:700}
 .comment-count{color:var(--accent);margin-left:5px}
 .comment-item{padding:14px 16px;border-bottom:1px solid #f0f0f0}
+.comment-item.reply{padding-left:44px;background:#fafafa;border-bottom:1px solid #f5f5f5;position:relative}
+.comment-item.reply::before{content:'↳';position:absolute;left:22px;top:14px;color:#ccc;font-size:14px}
 .comment-text{font-size:14px;line-height:1.55;color:#434343}
-.comment-meta{margin-top:7px;font-size:12px;color:#bbb}
+.comment-meta{margin-top:7px;font-size:12px;color:#bbb;display:flex;align-items:center;gap:10px}
+.reply-btn{font-size:12px;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;font-weight:600}
+.reply-btn:hover{text-decoration:underline}
+.reply-form{padding:10px 16px 10px 44px;background:#fafafa;border-bottom:1px solid #f0f0f0;display:flex;gap:8px}
+.reply-form input{flex:1;height:36px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:13px;font-family:inherit;outline:none}
+.reply-form input:focus{border-color:var(--accent)}
+.reply-form button{height:36px;padding:0 14px;background:var(--accent);color:#fff;border:0;border-radius:8px;font-size:13px;font-weight:600}
+.reply-cancel{background:#e5e5e5!important;color:#666!important}
 .comment-form{padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;background:#fff;position:sticky;bottom:0}
 .comment-input{flex:1;height:40px;border:1px solid var(--border);border-radius:8px;padding:0 12px;font-size:14px;font-family:inherit;outline:none}
 .comment-input:focus{border-color:var(--accent)}
@@ -124,7 +133,7 @@ const PASSWORD='lady123';
 const SB_URL='https://gilafrwetspmwtimsqez.supabase.co';
 const SB_KEY='sb_publishable_uvzF0NuMLe1kkQQcv7xkpQ_VgEz-5fC';
 const STORAGE_KEY='bam_posts';
-let state={screen:'lock',posts:[],currentPost:null,category:'all',searchQuery:'',searchOpen:false,page:1};
+let state={screen:'lock',posts:[],currentPost:null,category:'all',searchQuery:'',searchOpen:false,page:1,replyTo:null};
 const PAGE_SIZE=20;
 
 const SB_HEADERS={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'};
@@ -449,7 +458,36 @@ function renderDetail(){
   const p=state.currentPost;
   if(!p){state.screen='list';render();return'';}
   const tags=(p.tags||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join('');
-  const comments=(p.comments||[]).map(c=>`<div class="comment-item"><div class="comment-text">${esc(c.text)}</div><div class="comment-meta">익명 | ${fmt(c.createdAt)}</div></div>`).join('');
+  // 댓글 + 대댓글 트리 구조 렌더링
+  const allComments = p.comments||[];
+  const topLevel = allComments.filter(c=>!c.parentId);
+  const totalCount = allComments.length;
+  const comments = topLevel.map(c=>{
+    const replies = allComments.filter(r=>r.parentId===c.id);
+    const replyHtml = replies.map(r=>`
+      <div class="comment-item reply">
+        <div class="comment-text">${esc(r.text)}</div>
+        <div class="comment-meta">
+          <span>익명 | ${fmt(r.createdAt)}</span>
+          <button class="reply-btn" data-del="${r.id}">삭제</button>
+        </div>
+      </div>`).join('');
+    const formHtml = state.replyTo===c.id
+      ? `<div class="reply-form">
+           <input id="reply-input" placeholder="답글 입력..." maxlength="300" autocomplete="off">
+           <button id="reply-submit">등록</button>
+           <button id="reply-cancel" class="reply-cancel">취소</button>
+         </div>`
+      : '';
+    return `<div class="comment-item">
+        <div class="comment-text">${esc(c.text)}</div>
+        <div class="comment-meta">
+          <span>익명 | ${fmt(c.createdAt)}</span>
+          <button class="reply-btn" data-reply="${c.id}">답글</button>
+          <button class="reply-btn" data-del="${c.id}">삭제</button>
+        </div>
+      </div>${replyHtml}${formHtml}`;
+  }).join('');
   return`
     <div class="detail-topbar">
       <button class="back-btn" id="back-btn">‹</button>
@@ -470,7 +508,7 @@ function renderDetail(){
       </div>
     </div>
     <div class="comments-section">
-      <div class="comments-title-bar">✎ 댓글 <span class="comment-count">${(p.comments||[]).length}개</span></div>
+      <div class="comments-title-bar">✎ 댓글 <span class="comment-count">${totalCount}개</span></div>
       ${comments||'<div class="empty" style="padding:28px 16px">댓글이 없어요</div>'}
       <div class="comment-form">
         <input class="comment-input" id="comment-input" placeholder="댓글 입력..." maxlength="300">
@@ -497,13 +535,51 @@ function bindDetail(){
     document.getElementById('mc').addEventListener('click',()=>document.body.removeChild(ov));
     ov.addEventListener('click',e=>{if(e.target===ov)document.body.removeChild(ov);});
   });
+  // 일반 댓글 등록
   const inp=document.getElementById('comment-input');
   document.getElementById('comment-submit').addEventListener('click',()=>{
     const text=inp.value.trim();if(!text)return;
     if(!p.comments)p.comments=[];
-    p.comments.push({id:genId(),text,createdAt:Date.now()});saveSingle(p).then(()=>render());
+    p.comments.push({id:genId(),text,createdAt:Date.now(),parentId:null});
+    state.replyTo=null;
+    saveSingle(p).then(()=>render());
   });
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('comment-submit').click();});
+
+  // 답글 버튼
+  document.querySelectorAll('[data-reply]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      state.replyTo = state.replyTo===btn.dataset.reply ? null : btn.dataset.reply;
+      render();
+      setTimeout(()=>document.getElementById('reply-input')?.focus(),50);
+    });
+  });
+
+  // 답글 등록
+  const rinp=document.getElementById('reply-input');
+  if(rinp){
+    const submitReply=()=>{
+      const text=rinp.value.trim();if(!text)return;
+      if(!p.comments)p.comments=[];
+      p.comments.push({id:genId(),text,createdAt:Date.now(),parentId:state.replyTo});
+      state.replyTo=null;
+      saveSingle(p).then(()=>render());
+    };
+    document.getElementById('reply-submit').addEventListener('click',submitReply);
+    rinp.addEventListener('keydown',e=>{if(e.key==='Enter')submitReply();});
+    document.getElementById('reply-cancel').addEventListener('click',()=>{state.replyTo=null;render();});
+  }
+
+  // 댓글 삭제
+  document.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(!confirm('삭제할까요?'))return;
+      const id=btn.dataset.del;
+      // 댓글 삭제 시 대댓글도 함께 삭제
+      p.comments=p.comments.filter(c=>c.id!==id && c.parentId!==id);
+      saveSingle(p).then(()=>render());
+    });
+  });
 }
 
 (async()=>{
