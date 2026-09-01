@@ -69,16 +69,16 @@ mark{background:#fff0a0;color:inherit;border-radius:2px;padding:0 1px}
 .post-submit{margin-left:auto;font-size:14px;font-weight:700;color:var(--accent);background:none;border:0;padding:8px 0}
 .post-head{padding:24px 16px 0;background:#fff}
 .badge-pill{display:inline-flex;align-items:center;height:28px;padding:0 12px;border:1.5px solid #e17a8d;border-radius:99px;color:var(--accent);font-size:12px;font-weight:700}
-.post-title-edit{margin:12px 0 0;width:100%;font-size:17px;font-weight:700;line-height:1.5;background:transparent;border:0;outline:none;min-height:48px;font-family:inherit;caret-color:var(--accent)}
-.post-title-edit:empty::before{content:attr(data-placeholder);color:#bbb}
+.post-title-edit{margin:12px 0 0;width:100%;font-size:17px;font-weight:700;line-height:1.5;color:#111;background:transparent;border:0;outline:none;min-height:48px;font-family:inherit;caret-color:var(--accent);resize:none;overflow:hidden;padding:0;display:block}
+.post-title-edit::placeholder{color:#bbb}
 .post-meta{margin-top:12px;padding-bottom:12px;border-bottom:1px solid #d8d8d8;font-size:12px;color:#aaa}
 .tag-input-wrap{padding:12px 16px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
 .tag-input-label{font-size:12px;color:var(--muted);white-space:nowrap}
 .tag-input{flex:1;height:32px;border:1px solid var(--border);border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;outline:none}
 .tag-input:focus{border-color:var(--accent)}
 .tag-preview{display:flex;gap:4px;flex-wrap:wrap;padding:8px 16px;background:#fff;min-height:36px}
-.post-body-edit{padding:20px 16px;font-size:14px;line-height:1.70;color:#343434;background:#fff;border:0;outline:none;min-height:280px;width:100%;font-family:inherit;white-space:pre-wrap;word-break:keep-all;resize:none;caret-color:var(--accent)}
-.post-body-edit:empty::before{content:attr(data-placeholder);color:#bbb}
+.post-body-edit{padding:20px 16px;font-size:14px;line-height:1.70;color:#343434;background:#fff;border:0;outline:none;min-height:280px;width:100%;font-family:inherit;word-break:keep-all;resize:none;caret-color:var(--accent);display:block}
+.post-body-edit::placeholder{color:#bbb}
 .post-body-view{padding:20px 16px;font-size:14px;line-height:1.70;color:#343434;white-space:pre-wrap;word-break:keep-all;overflow-wrap:break-word;min-height:160px;background:#fff}
 .post-actions{display:flex;justify-content:center;gap:14px;padding:60px 0 36px;background:#fff}
 .action-btn{height:46px;min-width:100px;padding:0 14px;border:1px solid #cfcfcf;background:#f8f8f8;color:#555;font-size:14px;border-radius:4px}
@@ -415,7 +415,7 @@ function renderWrite(){
     <div style="background:#fff;min-height:calc(100dvh - 56px);padding-bottom:40px">
       <div class="post-head">
         <div class="badge-pill">밤문화Talk</div>
-        <div class="post-title-edit" id="post-title" contenteditable="true" data-placeholder="제목을 입력하세요" spellcheck="false">${p?esc(p.title):''}</div>
+        <textarea class="post-title-edit" id="post-title" rows="1" placeholder="제목을 입력하세요" spellcheck="false">${p?esc(p.title):''}</textarea>
         <div class="post-meta">[비회원]익명 &nbsp;|&nbsp; 오늘</div>
       </div>
       <div class="tag-input-wrap">
@@ -423,7 +423,7 @@ function renderWrite(){
         <input class="tag-input" id="tag-input" placeholder="예: 룸, 가라오케 (쉼표로 구분)" value="${esc((p?.tags||[]).join(', '))}">
       </div>
       <div class="tag-preview" id="tag-preview"></div>
-      <div class="post-body-edit" id="post-body" contenteditable="true" data-placeholder="내용을 입력하세요" spellcheck="false">${p?esc(p.body):''}</div>
+      <textarea class="post-body-edit" id="post-body" placeholder="내용을 입력하세요" spellcheck="false">${p?esc(p.body):''}</textarea>
     </div>`;
 }
 function bindWrite(){
@@ -434,21 +434,21 @@ function bindWrite(){
   const tagPrev=document.getElementById('tag-preview');
   function updTags(){tagPrev.innerHTML=parseTags(tagInp.value).map(t=>`<span class="tag">#${esc(t)}</span>`).join('');}
   tagInp.addEventListener('input',updTags);updTags();
-  [titleEl,bodyEl].forEach(el=>{
-    el.addEventListener('paste',e=>{e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));});
-    el.addEventListener('input',()=>{if(!el.textContent.trim())el.innerHTML='';});
-  });
-  bodyEl.addEventListener('keydown',e=>{
-    if(e.key==='Enter'){e.preventDefault();const sel=window.getSelection();const r=sel.getRangeAt(0);sel.deleteFromDocument();const n=document.createTextNode('\n');r.insertNode(n);r.setStartAfter(n);r.collapse(true);sel.removeAllRanges();sel.addRange(r);}
-  });
+  // 제목: 높이 자동 조절 + 엔터 시 본문으로 이동
+  function autoGrow(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+  titleEl.addEventListener('input',()=>autoGrow(titleEl));
+  autoGrow(titleEl);
   titleEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();bodyEl.focus();}});
+
+  // 본문: 높이 자동 조절
+  bodyEl.addEventListener('input',()=>autoGrow(bodyEl));
+  autoGrow(bodyEl);
   document.getElementById('submit-btn').addEventListener('click',()=>{
-    const title=titleEl.innerText.trim(),body=bodyEl.innerText.trim(),tags=parseTags(tagInp.value);
+    const title=titleEl.value.trim(),body=bodyEl.value.trim(),tags=parseTags(tagInp.value);
     if(!title){titleEl.focus();toast('제목을 입력해주세요');return;}
     if(!body){bodyEl.focus();toast('내용을 입력해주세요');return;}
     if(state.currentPost){Object.assign(state.currentPost,{title,body,tags});saveSingle(state.currentPost).then(()=>{state.screen="detail";render();});}
     else{const post={id:genId(),title,body,tags,used:false,created_at:Date.now(),comments:[]};state.posts.unshift(post);state.currentPost=post;saveSingle(post).then(()=>{state.screen="detail";render();});}
-    render();
   });
   if(!state.currentPost)titleEl.focus();
 }
